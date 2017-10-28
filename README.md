@@ -1,8 +1,8 @@
 # Optimus
 
-Optimus is a customized cluster scheduler for deep learning training jobs that targets high job performance and resource efficiency in production clusters. It builds resource-performance models for each job on the go, and dynamically schedules resources to jobs based on job progress and the cluster load to maximize training performance and resource efficiency.
+Optimus is a customized cluster scheduler for deep learning training jobs that targets high job performance and resource efficiency in production clusters. It builds resource-performance models for each job on the go, and dynamically schedules resources to jobs based on job progress and the cluster load to maximize training performance and resource efficiency. It uses MXNet as the distributed training framework and is integrated into Kubernetes cluster manager.
 
-## Prerequisites
+## Setup
 ### OS Environment
 (1) Ubuntu 14.04.5 Server 64bit LTS;
 (2) Install the basic tools by running the script <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/notes/preinstall.sh">preinstall.sh</a>.
@@ -10,57 +10,40 @@ Optimus is a customized cluster scheduler for deep learning training jobs that t
 ### Cluster Environment
 Build up the following platforms in the cluster:
 (1) HDFS 2.8, see <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/notes/hadoop.md">hadoop.md</a> for more details;
-(3) Docker 17.06.0-ce, see the official installation tutorial;
-(4) Kubernetes 1.7, see notes/k8s.md for detailed installation steps (the official one is outdated).
+(3) Docker 17.06.0-ce, see the official installation tutorial https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/;
+(4) Kubernetes 1.7, see <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/notes/hadoop.md">k8s.md</a> for detailed installation steps (the official one is outdated). Generally, you need to install from the <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/k8s/src">modified source code</a>. Configure the <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/config-default.sh">config-default.sh</a> script for cluster node information (e.g., Master IP) and label each node as CPU or GPU node in <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/label_nodes.sh"> label_nodes.sh</a>. Run <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/start.sh"> start.sh</a> to start the resource manager and <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/start.sh"> shutdown.sh</a> to shutdown it.
+
+
 ### Container Environment
+(1) MXNet CPU container, see <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/images/cpu">k8s-mxnet-cpu-experiment.Dockerfile</a> and <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/images/cpu/build.sh">build.sh</a> to see how to compile MXNet container. To get faster training speed on Intel CPU, set USE_MKL2017=1 and USE_MKL2017_EXPERIMENTAL=1 when building the container to enable Intel Math Kernel Library. To get even faster training speed, copy the  <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/mxnet/params_distribution/implementation">scripts</a> into the image to enable balanced parameter assignment.
+(2) MXNet GPU container (if the server has NVIDIA GPUs), see <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/images/gpu">k8s-mxnet-gpu-experiment.Dockerfile</a> and <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/images/gpu/build.sh">build.sh</a>. Note that NVIDIA Docker plugin is required in such case, see https://github.com/NVIDIA/nvidia-docker/wiki/nvidia-docker-plugin for installation details.
+
+### CUDA Environment
+Run <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/nvidia/install-nvidia-driver-cuda-cudnn.sh">install-nvidia-driver-cuda-cudnn.sh</a> to install:
+(1) NVIDIA Driver version >= 375.66;
+(2) CUDA version >= 8.0.61;
+(3) CuDNN Library version >= 6.0
 
 
-
-
-Python 2.7.6.
-
-
-
-
-## Basic Usage
-The system configuration file <a href="https://github.com/yhpeng-git/deTector/blob/master/controller/config.xml">config.xml</a> in the Controller specifies all details such as Controller/Diagnoser IP, listening port and ping interval. To run deTector on a cluster, you need to update this file according to your cluster configuration.
-
-You need to start Controller first using the following command:
-
+## Jobs
+### A Simple Example
+To train a ResNet-50 model in a distributed way in k8s cluster,
+(1) Set the number of parameter servers and workers, the HDFS URL of ImageNet dataset in <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/measurement/training-speed/measure-speed.py">measure-speed.py</a>;
+(2) Run
 ```
-$ python controller.py
-```
-
-The Controller will read the configuration, compute the probe matrix and start a HTTP server.
-
-To start the Diagnoser, run:
-```
-$ python diagnoser.py controller_ip controller_port
-```
-The Diagnoser needs to connect to the controller to get the probe matrix.
-
-Next, start Responders on all servers using the command:
-```
-$ python responder.py controller_ip controller_port
+$ python measure-speed.py
 ```
 
-Finally, run Pingers on servers who ping others:
-```
-$ python pinger.py host_ip controller_ip controller_port
-```
+Basically, what it does is to sumbit a job to k8s and display training details(eg., training progress, speed, cpu usage) every 5 minutes. See <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/measurement/examples">here</a> for more examples.
 
-## Advanced usage
-For ease of deployment, you can direct run <a href="https://github.com/yhpeng-git/deTector/blob/master/controller/script.py">script.py</a> to deploy deTector in a cluster after you finish basic configuration and configure auto-login ssh. This script reads the configuration from config.xml and by default, it runs Controller and Diagnoser on localhost. 
-
-To do loss localization, you also need to start failanalyzer on the same machine with Diagnoser using the command:
+### Submit Your Job
+(1) Prepare the container: copy your program into the <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/images/gpu/scripts">script folder</a> under the image path and build the image by running
 ```
-$ python failanalyzer.py
+$ ./build.sh
 ```
+(2) Similar to the simple example, configure job details such as image path, container resource requirement etc, and run <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/measurement/training-speed/measure-speed.py">measure-speed.py</a>
 
-Note that deTector requires source routing in the cluster to controll packet path. Packet encapsulation and decapsulation (e.g., IP-in-IP) is a general solution and should be supported on commodity switches. 
 
 
 ## More
-Please read <a href="https://github.com/yhpeng-git/deTector/blob/master/documentation/Architecture.md">Architecture.md</a> and <a href="https://github.com/yhpeng-git/deTector/blob/master/documentation/Workflow.md">Workflow.md</a> for more system design details.
-
-Read the <a href="https://github.com/yhpeng-git/deTector/blob/master/documentation/technical_report.pdf"> technical report </a> for the core algorithm of deTector.
+Read the <a href="https://www.dropbox.com/s/2mlpu2tk74f8cta/technical_report.pdf?dl=0"> technical report </a> for the details of Optimus.
