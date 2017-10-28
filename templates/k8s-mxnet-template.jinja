@@ -1,0 +1,114 @@
+{%- set name = "$JOB_NAME" -%}
+{%- set image = "$IMAGE" -%}
+{%- set num_worker = $NUM_WORKER -%}
+{%- set num_ps = $NUM_PS -%}
+{%- set ps_cpu = "$PS_CPU" -%}
+{%- set ps_mem = "$PS_MEM" -%}
+{%- set worker_cpu = "$WORKER_CPU" -%}
+{%- set worker_mem = "$WORKER_MEM" -%}
+{%- set replicas = {"worker": num_worker, "ps": num_ps} -%}
+{%- set ps_placement = "$PS_PLACEMENT".split(",") -%}
+{%- set worker_placement = "$WORKER_PLACEMENT".split(",") -%}
+{%- set ps_mount_dirs = "$PS_MOUNT_DIRS".split(",") -%}
+{%- set worker_mount_dirs = "$WORKER_MOUNT_DIRS".split(",") -%}
+{%- set batch_sizes = "$BATCH_SIZES".split(",") -%}
+{%- set volume = "$VOLUME" -%}
+{%- set work_dir = "$WORK_DIR" -%}
+
+
+{%- macro worker_hosts() -%}
+  {%- for i in range(num_worker) -%}
+    {%- if not loop.first -%},{%- endif -%}
+    {{ name }}-worker-{{ i }}
+  {%- endfor -%}
+{%- endmacro -%}
+
+{%- macro ps_hosts() -%}
+  {%- for i in range(num_ps) -%}
+    {%- if not loop.first -%},{%- endif -%}
+    {{ name }}-ps-{{ i }}
+  {%- endfor -%}
+{%- endmacro -%}
+
+{%- for job in ["worker", "ps"] -%}
+{%- for i in range(replicas[job]) -%}
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: {{ name }}-{{ job }}-{{ i }}
+spec:
+  template:
+    metadata:
+      labels:
+        name: {{ name }}
+        job: {{ job }}
+        task: "{{ i }}"
+    spec:
+      nodeSelector:
+{%- if job == "worker" %}
+        kubernetes.io/hostname: {{ worker_placement[i] }}
+{%- else %}
+        kubernetes.io/hostname: {{ ps_placement[i] }}
+{%- endif %}
+      containers:
+      - name: {{ name }}
+        image: {{ image }}
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash"]
+        args: ["$SCRIPT"]
+        env:
+        - name: JOB_NAME
+          value: "{{ name }}"
+        - name: DMLC_NUM_WORKER
+          value: "{{ num_worker }}"
+        - name: DMLC_NUM_SERVER
+          value: "{{ num_ps }}"
+        - name: ROLE
+          value: "{{ job }}"
+        - name: PROG
+          value: "$PROG"
+        - name: WORK_DIR
+          value: "{{ work_dir }}"
+        - name: KV_STORE
+          value: "$KV_STORE"
+        - name: BATCH_SIZE
+          value: "{{ batch_sizes[i] }}"
+        - name: MXNET_KVSTORE_BIGARRAY_BOUND
+          value: "$MXNET_KVSTORE_BIGARRAY_BOUND"
+        - name: PS_VERBOSE
+          value: "$PS_VERBOSE"
+        resources:
+          limits:
+{%- if job == "worker" %}
+            cpu: {{ worker_cpu }}
+            memory: {{ worker_mem }}
+{%- else %}
+            cpu: {{ ps_cpu }}
+            memory: {{ ps_mem }}
+{%- endif %}
+          requests:
+{%- if job == "worker" %}
+            cpu: {{ worker_cpu }}
+            memory: {{ worker_mem }}
+{%- else %}
+            cpu: {{ ps_cpu }}
+            memory: {{ ps_mem }}
+{%- endif %}
+        ports:
+        - containerPort: 6006
+        volumeMounts:
+        - mountPath: {{ work_dir }}
+          name: {{ volume }}
+      volumes:
+      - name: {{ volume }}
+        hostPath:
+{%- if job == "worker" %}
+          path: {{ worker_mount_dirs[i] }}
+{%- else %}
+          path: {{ ps_mount_dirs[i] }}
+{%- endif %}
+      restartPolicy: Never
+---
+{% endfor %}
+{%- endfor -%}
+

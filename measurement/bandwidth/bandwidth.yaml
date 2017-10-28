@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    name: bandwidth
+  name: bandwidth
+spec:
+  template:
+    metadata:
+      labels:
+        app: bandwidth
+    spec:
+      #nodeSelector:
+      #  app: cassandra
+      containers:
+        - command: ["python","/bandwidth.py"]
+          image: yhpeng/k8s-bandwidth
+          name: bandwidth
+          env:
+          - name: DAEMON_NAME
+            value: "bandwidth"
+          resources:
+            requests:
+              cpu: 6
+              memory: 12Gi

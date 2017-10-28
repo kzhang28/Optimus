@@ -1,0 +1,3 @@
+1. install nvidia gpu driver: sudo ./NVIDIA-Linux-x86_64-375.66.run -a
+2. install nvidia cuda lib: sudo dpkg -i cuda-repo-ubuntu1404_8.0.61-1_amd64.deb; sudo apt-get update; sudo apt-get install cuda
+3. install nvidia cudnn lib: tar -xvf cudnn-8.0-linux-x64-v6.0.tgz; cd cuda; sudo cp -P include/cudnn.h /usr/include; sudo cp -P lib64/libcudnn* /usr/lib/x86_64-linux-gnu/; sudo chmod a+r /usr/lib/x86_64-linux-gnu/libcudnn*
