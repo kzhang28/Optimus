@@ -33,7 +33,7 @@ Run <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/nvidia/ins
 (3) CuDNN Library version >= 6.0
 
 
-## Jobs
+## Usage
 ### A Simple Example
 To train a ResNet-50 model in a distributed way in k8s cluster,
 
