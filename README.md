@@ -10,20 +10,22 @@ Optimus is a customized cluster scheduler for deep learning training jobs that t
 
 ### Cluster Environment
 Build up the following platforms in the cluster:
-(1) HDFS 2.8, see <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/notes/hadoop.md">hadoop.md</a> for more details;
 
-(2) Docker 17.06.0-ce, see the official installation tutorial https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/;
+(1) HDFS 2.8: see <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/notes/hadoop.md">hadoop.md</a> for more details;
 
-(3) Kubernetes 1.7, see <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/notes/hadoop.md">k8s.md</a> for detailed installation steps (the official one is outdated). Generally, you need to install from the <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/k8s/src">modified source code</a>. Configure the <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/config-default.sh">config-default.sh</a> script for cluster node information (e.g., Master IP) and label each node as CPU or GPU node in <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/label_nodes.sh"> label_nodes.sh</a>. Run <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/start.sh"> start.sh</a> to start the resource manager and <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/start.sh"> shutdown.sh</a> to shutdown it.
+(2) Docker 17.06.0-ce: see the official installation tutorial https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/;
+
+(3) Kubernetes 1.7: see <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/notes/hadoop.md">k8s.md</a> for detailed installation steps (the official one is outdated). Generally, you need to install from the <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/k8s/src">modified source code</a>. Configure the <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/config-default.sh">config-default.sh</a> script for cluster node information (e.g., Master IP) and label each node as CPU or GPU node in <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/label_nodes.sh"> label_nodes.sh</a>. Run <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/start.sh"> start.sh</a> to start the resource manager and <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/k8s/scripts/start.sh"> shutdown.sh</a> to shutdown it.
 
 
 ### Container Environment
-(1) MXNet CPU container, see <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/images/cpu">k8s-mxnet-cpu-experiment.Dockerfile</a> and <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/images/cpu/build.sh">build.sh</a> to see how to compile MXNet container. To get faster training speed on Intel CPU, set USE_MKL2017=1 and USE_MKL2017_EXPERIMENTAL=1 when building the container to enable Intel Math Kernel Library. To get even faster training speed, copy the  <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/mxnet/params_distribution/implementation">scripts</a> into the image to enable balanced parameter assignment.
+(1) MXNet CPU container: see <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/images/cpu">k8s-mxnet-cpu-experiment.Dockerfile</a> and <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/images/cpu/build.sh">build.sh</a> to see how to compile MXNet container. To get faster training speed on Intel CPU, set USE_MKL2017=1 and USE_MKL2017_EXPERIMENTAL=1 when building the container to enable Intel Math Kernel Library. To get even faster training speed, copy the  <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/mxnet/params_distribution/implementation">scripts</a> into the image to enable balanced parameter assignment.
 
-(2) MXNet GPU container (if the server has NVIDIA GPUs), see <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/images/gpu">k8s-mxnet-gpu-experiment.Dockerfile</a> and <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/images/gpu/build.sh">build.sh</a>. Note that NVIDIA Docker plugin is required in such case, see https://github.com/NVIDIA/nvidia-docker/wiki/nvidia-docker-plugin for installation details.
+(2) MXNet GPU container (if the server has NVIDIA GPUs): see <a href="https://github.com/eurosys18-Optimus/Optimus/tree/master/images/gpu">k8s-mxnet-gpu-experiment.Dockerfile</a> and <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/images/gpu/build.sh">build.sh</a>. Note that NVIDIA Docker plugin is required in such case, see https://github.com/NVIDIA/nvidia-docker/wiki/nvidia-docker-plugin for installation details.
 
 ### CUDA Environment
 Run <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/nvidia/install-nvidia-driver-cuda-cudnn.sh">install-nvidia-driver-cuda-cudnn.sh</a> to install:
+
 (1) NVIDIA Driver version >= 375.66;
 
 (2) CUDA version >= 8.0.61;
@@ -34,6 +36,7 @@ Run <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/nvidia/ins
 ## Jobs
 ### A Simple Example
 To train a ResNet-50 model in a distributed way in k8s cluster,
+
 (1) Set the number of parameter servers and workers, the HDFS URL of ImageNet dataset in <a href="https://github.com/eurosys18-Optimus/Optimus/blob/master/measurement/training-speed/measure-speed.py">measure-speed.py</a>;
 
 (2) Run
